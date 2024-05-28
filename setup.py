@@ -14,7 +14,7 @@ setup(
     url="https://github.com/harvard-visionlab/eval-classification",
     packages=find_packages(),
     install_requires=[
-        'git+https://github.com/harvard-visionlab/s3-filestore.git',
+        # 'git+https://github.com/harvard-visionlab/s3-filestore.git',
     ],
     classifiers=[
         "Programming Language :: Python :: 3",
