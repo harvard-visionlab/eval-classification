@@ -25,7 +25,7 @@ def accuracy(output, target, topk=(1,)):
     return pred, corrects, res
     
 @torch.no_grad()
-def run_validation(model, dataset, topk=(1,5), map_output=None, batch_size=250, num_workers=10, shuffle=False, pin_memory=True, mb=None):
+def validation(model, dataset, topk=(1,5), map_output=None, batch_size=250, num_workers=10, shuffle=False, pin_memory=True, mb=None):
     device = next(model.parameters()).device
     criterion = nn.CrossEntropyLoss(reduction='none')
     filepaths = [(os.path.sep).join(f.split(os.path.sep)[-2:]) for f,_ in dataset.imgs]
@@ -52,9 +52,12 @@ def run_validation(model, dataset, topk=(1,5), map_output=None, batch_size=250, 
 
         results['index'] += index
         results['filenames'] += filenames
-        results['correct_label'] += target.tolist()
+        results['target_label'] += target.tolist()
         results['loss'] += loss_orig.tolist()
         results['predicted_label'] += preds[0].tolist()
+        # results['target_act'] =
+        # results['max_nontarget_act'] = 
+        # results['snr'] = 
         
         for idx,k in enumerate(topk):
             results[f'correct{k}'] += accuracies[idx].tolist()
