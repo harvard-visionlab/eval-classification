@@ -13,7 +13,9 @@ setup(
     long_description_content_type="text/markdown",
     url="https://github.com/harvard-visionlab/eval-classification",
     packages=find_packages(),
-    install_requires=[],
+    install_requires=[
+        'git+https://github.com/harvard-visionlab/s3-filestore.git',
+    ],
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
