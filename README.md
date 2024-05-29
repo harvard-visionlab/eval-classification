@@ -25,7 +25,7 @@ For visionlab use, you can use access lab-standardized datasets and models, and 
 ```
 from visionlab_datasets import load_dataset
 from visionlab_models import load_model
-from eval_classification import Classifier, ResultsLogger
+from eval_classification import Classifier
 
 # setup classifier with automatic remote data storage
 classifier = Classifier(bucket='visionlab-results/alvarez/Projects/dnn-evals/eval-classification', 

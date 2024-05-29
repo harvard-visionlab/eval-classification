@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader
@@ -5,6 +6,8 @@ from torch.utils.data import DataLoader
 import pandas as pd
 from fastprogress import progress_bar
 from collections import defaultdict
+
+from pdb import set_trace
 
 @torch.no_grad()    
 def accuracy(output, target, topk=(1,)):
@@ -48,19 +51,26 @@ def validation(model, dataset, topk=(1,5), map_output=None, batch_size=250, num_
             
         loss = criterion(output, target)
 
-        preds, accuracies, _ = accuracy(output, target, topk=topk)
-
+        preds, accuracies, _ = accuracy(output, target, topk=topk)     
+        
+        # maximum target and non-target activation
+        target_activations = torch.gather(output, 1, target.view(-1,1)).squeeze()
+        mask = torch.ones_like(output, dtype=bool).scatter_(1, target.view(-1, 1), False)
+        non_target_output = output[mask].view(output.shape[0], -1)
+        max_nontarget_activation = non_target_output.max(dim=1).values
+        snr = target_activations / max_nontarget_activation
+        
         results['index'] += index
         results['filenames'] += filenames
         results['target_label'] += target.tolist()
-        results['loss'] += loss_orig.tolist()
+        results['loss'] += loss.tolist()
         results['predicted_label'] += preds[0].tolist()
-        # results['target_act'] =
-        # results['max_nontarget_act'] = 
-        # results['snr'] = 
+        results['target_act'] += target_activations.tolist()
+        results['max_nontarget_act'] += max_nontarget_activation.tolist()
+        results['snr'] += snr.tolist()
         
         for idx,k in enumerate(topk):
             results[f'correct{k}'] += accuracies[idx].tolist()
 
     df = pd.DataFrame(results)
-    return df
+    return df, None
