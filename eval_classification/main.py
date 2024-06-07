@@ -13,6 +13,7 @@ from collections import defaultdict
 from pdb import set_trace
 
 from .utils import snr
+from .feature_extractor import FeatureExtractor
 
 @torch.no_grad()    
 def accuracy(output, target, topk=(1,)):
@@ -61,6 +62,7 @@ def validation(model, dataset, layer_names=None, topk=(1,5), map_output=None, ba
                 features = extractor(images)
                 
         for layer_name, output in features.items():
+            target = target.to(output.device)
             loss = criterion(output, target)
 
             preds, act, accuracies, _ = accuracy(output, target, topk=topk)     
