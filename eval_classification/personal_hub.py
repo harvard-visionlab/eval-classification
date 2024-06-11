@@ -183,6 +183,7 @@ class ClassifierStore(object):
                         layer_results[name] = self.s3.load_object(key)
 
                     if not self.any_missing_data(layer_results):
+                        # TODO: would be better if load_object also returned the local cache filename, so we just copy it
                         print(f"==> {layer_name} files found in bucket, saving local copies:")
                         self.save_local_copies(layer_results, filenames, analysis_dir)
 
