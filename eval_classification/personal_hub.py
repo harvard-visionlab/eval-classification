@@ -219,7 +219,7 @@ class ClassifierStore(object):
             assert self.any_missing_data(layer_results)==False, f"Failed to get results for layer_name={layer_name}"
         
         print(f"==> Obtained validation scores for all layers: {list(results.keys())}")
-        return results
+        return results, meta
     
     def __repr__(self):
         rep = (
