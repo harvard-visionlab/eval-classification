@@ -38,8 +38,26 @@ class ClassifierStore(object):
         s3 (S3FileStore): Instance of the S3FileStore for managing S3 interactions.
         __version__ (str): Version of the ClassifierStore class.
 
-    Methods:
-        __init__: Initializes the ClassifierStore with the provided configuration.
+    Usage:
+        from eval_classification.personal_hub import ClassifierStore
+        from eval_classification.utils import get_hashid_from_filepath_or_url
+        
+        # setup a classifier using imagenet1k validation dataset
+        classifier = ClassifierStore('imagnet1k', split='val', results_dir='./results')
+        
+        # load your model
+        model = ...
+        model.id = get_hashid_from_filepath_or_url(weights_filepath_or_url)
+        
+        # setup your transforms
+        transform = ...
+        
+        # run the analysis, or return cached results:        
+        results, metadata = classifier(model, transform)
+        
+        # If your model is a self-supervised model with linear probes attached, specify the layer_names
+        results, metadata = classifier(model, transform, layer_names=['probes.0','probes.1'])
+        
     """
     def __init__(self, dataset, split, results_dir, hub_root=None, bucket_name='visionlab-results', profile='wasabi', 
                  endpoint_url='https://s3.wasabisys.com', acl='public-read', hash_length=10,
