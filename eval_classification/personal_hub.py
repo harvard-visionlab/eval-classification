@@ -75,17 +75,18 @@ class ClassifierStore(object):
                                         acl=acl, hash_length=hash_length, expires_in_seconds=expires_in_seconds)
         self.__version__ = __version__
         
-    def get_meta(self, dataset, weights_file_or_url):
+    def get_meta(self, model, dataset):
         '''
             Get the relevant metadata for this eval, which is used
             to uniquely identify the model (hash_id from weights_file_or_url)
             and the dataset (name and id), and key parameters known to 
             affect validation accuracy (resize, interp, crop size).            
         '''
+        assert hasattr(model,'id') and isinstance(dataset.name, str), "Model must have an id. Set model.id to a uuid for the model, like the sha256sum of the model weights." 
         assert hasattr(dataset,'name') and isinstance(dataset.name, str), "Dataset must have a name. Set dataset.name" 
         assert hasattr(dataset,'id') and isinstance(dataset.name, str), "Dataset must have an id. Set dataset.id" 
         meta = dict()
-        meta['model_id'] = get_hash_id_from_weights_url(weights_file_or_url)
+        meta['model_id'] = model.id
         meta['dataset_name'] = dataset.name
         meta['dataset_id'] = dataset.id
         meta['eval_id'] = self.__version__
@@ -176,12 +177,12 @@ class ClassifierStore(object):
     def any_missing_data(self, data_dict):
         return any([v is None for v in data_dict.values()])
     
-    def __call__(self, model, transform, weights_file_or_url, layer_names=None, recompute=False,
+    def __call__(self, model, transform, layer_names=None, recompute=False,
                  batch_size=250, num_workers=None, default_output_name='output', mb=None):
         
         num_workers = max(10, len(os.sched_getaffinity(0))) if num_workers is None else num_workers
         dataset = self.get_dataset(transform)
-        meta = self.get_meta(dataset, weights_file_or_url)
+        meta = self.get_meta(model, dataset)
         analysis_dir = self.get_analysis_dir(dataset.id)
         
         check_layer_names = [default_output_name] if layer_names is None else layer_names
