@@ -35,7 +35,7 @@ def accuracy(output, target, topk=(1,)):
     
 @torch.no_grad()
 def validation(model, dataset, layer_names=None, topk=(1,5), map_output=None, batch_size=250, num_workers=10, 
-               shuffle=False, pin_memory=True, mb=None):
+               shuffle=False, pin_memory=True, default_output_name='output', meta={}, mb=None):
     device = next(model.parameters()).device
     criterion = nn.CrossEntropyLoss(reduction='none')
     filepaths = [(os.path.sep).join(f.split(os.path.sep)[-2:]) for f,_ in dataset.imgs]
@@ -56,7 +56,7 @@ def validation(model, dataset, layer_names=None, topk=(1,5), map_output=None, ba
             output = model(images)
             if map_output is not None:
                 output = map_output(output)
-            features = dict(output=output)
+            features = {default_output_name: output}
         else:
             with FeatureExtractor(model, layer_names) as extractor:
                 features = extractor(images)
@@ -89,15 +89,15 @@ def validation(model, dataset, layer_names=None, topk=(1,5), map_output=None, ba
             for idx,k in enumerate(topk):
                 results[layer_name][f'correct{k}'] += accuracies[idx].tolist()
 
-    # full image-by-image results 
-    dfs = dict()
+    # combine rawdata (image-by-image results) and summary into output dict
+    all_data = dict()
+    dfs = dict() 
     summary = dict()
     for layer_name,res in results.items():
         df = pd.DataFrame(res)
-        dfs[layer_name] = df
     
         # leaderboard summary    
-        summary[layer_name] = dict(
+        summary = dict(**meta, **dict(
             top1=df.correct1.mean()*100,
             top5=df.correct5.mean()*100,
             snr_mean=df.snr.mean(),
@@ -106,6 +106,9 @@ def validation(model, dataset, layer_names=None, topk=(1,5), map_output=None, ba
             snr_max=df.snr.max(),
             snr_kurtosis=kurtosis(df.snr),
             snr_sqrt_kurtosis=kurtosis(np.sqrt(df.snr))
-        )
-    
-    return dfs, summary
+        ))
+        summary = pd.DataFrame(summary, index=[0])
+        
+        all_data[layer_name] = dict(rawdata=df, summary=summary)
+        
+    return all_data
