@@ -34,11 +34,15 @@ def accuracy(output, target, topk=(1,)):
     return pred, act, corrects, res
     
 @torch.no_grad()
-def validation(model, dataset, layer_names=None, topk=(1,5), map_output=None, batch_size=250, num_workers=10, 
+def validation(model, dataset, layer_names=None, topk=(1,5), map_output=None, 
+               batch_size=250, num_workers=len(os.sched_getaffinity(0)) - 1, 
                shuffle=False, pin_memory=True, default_output_name='output', meta={}, mb=None):
     device = next(model.parameters()).device
     criterion = nn.CrossEntropyLoss(reduction='none')
-    filepaths = [(os.path.sep).join(f.split(os.path.sep)[-2:]) for f,_ in dataset.imgs]
+    imgs = (dataset.imgs if hasattr(dataset, "imgs") 
+            else dataset.samples if hasattr(dataset, "samples") 
+            else dataset._samples)
+    filepaths = [(os.path.sep).join(f.split(os.path.sep)[-2:]) for f,_ in imgs]
     dataloader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers, 
                             shuffle=shuffle, pin_memory=pin_memory)
     
@@ -72,7 +76,7 @@ def validation(model, dataset, layer_names=None, topk=(1,5), map_output=None, ba
             mask = torch.ones_like(output, dtype=bool).scatter_(1, target.view(-1, 1), False)
             non_target_output = output[mask].view(output.shape[0], -1)
             max_nontarget_activation = non_target_output.max(dim=1).values
-            snr = abs((target_activations-max_nontarget_activation) / math.sqrt(2))
+            snr = (target_activations-max_nontarget_activation) / math.sqrt(2)
             
             results[layer_name]['layer_name'] += [layer_name] * len(index)
             results[layer_name]['index'] += index            
@@ -101,11 +105,9 @@ def validation(model, dataset, layer_names=None, topk=(1,5), map_output=None, ba
             top1=df.correct1.mean()*100,
             top5=df.correct5.mean()*100,
             snr_mean=df.snr.mean(),
-            snr_sqrt_mean_squared=np.sqrt(df.snr).mean()**2,
             snr_min=df.snr.min(),
             snr_max=df.snr.max(),
             snr_kurtosis=kurtosis(df.snr),
-            snr_sqrt_kurtosis=kurtosis(np.sqrt(df.snr))
         ))
         summary = pd.DataFrame(summary, index=[0])
         
