@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "visionlab-evals-classification"
+dynamic = ["version"]
+description = "Image classification eval (top-1/top-5, decision margins) on visionlab.datasets val sets, for any model source"
+readme = "README.md"
+authors = [{name = "George Alvarez", email = "grez72@gmail.com"}]
+license = {file = "LICENSE"}
+requires-python = ">=3.10,<3.13"
+dependencies = [
+    # torchvision pinned to visionlab.models' validated range (as eval-anagrams)
+    "torch>=2.1.0",
+    "torchvision>=0.28.0,<0.29",
+    "numpy",
+    "pandas",
+    "pyarrow",
+    "pillow",
+    "tqdm",
+    # lab infrastructure: model sources + results store, and the data
+    "visionlab-model-evals",
+    "visionlab-datasets",
+    "visionlab-slipstream",
+]
+
+[project.entry-points."visionlab.evals.evals"]
+classification = "visionlab.evals.classification.plugin:EVAL"
+
+[project.optional-dependencies]
+models = ["visionlab-models@git+https://github.com/harvard-visionlab/models.git"]
+
+[dependency-groups]
+dev = ["pytest", "ruff", "ipykernel", "jupyterlab", "duckdb"]
+
+[tool.uv.sources]
+visionlab-model-evals = { git = "https://github.com/harvard-visionlab/model-evals.git" }
+visionlab-datasets = { git = "https://github.com/harvard-visionlab/datasets.git", tag = "v0.18.1" }
+# consumers pin slipstream themselves (not on PyPI); same tag as visionlab.datasets' own env
+visionlab-slipstream = { git = "https://github.com/harvard-visionlab/slipstream.git", tag = "v0.11.2" }
+torch = [
+    { index = "pytorch-cu126", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+    { index = "pytorch-cpu", marker = "sys_platform != 'linux' or platform_machine != 'x86_64'" },
+]
+torchvision = [
+    { index = "pytorch-cu126", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
+    { index = "pytorch-cpu", marker = "sys_platform != 'linux' or platform_machine != 'x86_64'" },
+]
+
+[[tool.uv.index]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+explicit = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.setuptools.dynamic]
+version = {attr = "visionlab.evals.classification.version.__version__"}
+
+[tool.setuptools]
+# Map the import path 'visionlab.evals.classification' to the source folder 'classification'
+package-dir = { "visionlab.evals.classification" = "classification" }
+packages = ["visionlab.evals.classification"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["data: needs visionlab.datasets caches (S3 download on first use)"]
+
+[tool.ruff]
+line-length = 120

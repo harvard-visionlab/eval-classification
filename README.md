@@ -1,65 +1,59 @@
 # eval-classification
-Python code for running classification evals on DNN models
 
+Image classification eval: per-image top-1/top-5, cross-entropy and decision margins
+(`(S_target − max_{j≠target} S_j)/√2`, Alvarez & Konkle 2024 UniReps) on visionlab.datasets val sets, for any model
+from any [model-evals](https://github.com/harvard-visionlab/model-evals) source (visionlab.models, model-rearing).
 
-### general use
-
-All that's required is a model, and a dataset that returns imgs,labels with the appropriate image transforms.
-
-```
-from torchvision import models, datasets
-from torchvision.models import AlexNet_Weights
-from eval_classification import validate
-
-model = models.alexnet(weights=AlexNet_Weights.IMAGENET1K_V1)
-transform = AlexNet_Weights.IMAGENET1K_V1.transforms()
-dataset = datasets.ImageFolder("/path/to/ImageNet2012/val", transform=transform)
-results, summary = validate(model, dataset)
-summary
+```bash
+uv sync --extra models
+uv run model eval classification pytorch/alexnet:DEFAULT                     # in1k-val (default)
+uv run model eval classification <rearing id> --dataset in100-val            # native head
+uv run model eval classification <rearing id>@probe:<layer> --dataset in100-val
+uv run model query classification
 ```
 
-### visionlab use
-
-For visionlab use, you can use access lab-standardized datasets and models, and automatically upload results to an s3_bucket and/or a notion database. Access to private lab data requires aws access keys / notion integration tokens.
-
-```
-from visionlab_datasets import load_dataset
-from visionlab_models import load_model
-from eval_classification import Classifier
-
-# setup classifier with automatic remote data storage
-classifier = Classifier(bucket='visionlab-results/alvarez/Projects/dnn-evals/eval-classification', 
-                        notion_db='')
-
-model, transforms = load_model("torchvision/alexnet", weights="DEFAULT")
-dataset, output_mapping = load_dataset("in1k", split="val", transform=transforms['val'])
-
-results, summary, urls = classifier.validate(model, dataset, output_mapping)
+```python
+from visionlab.evals.classification import classification_eval
+results = classification_eval(model, transforms.val, "in1k-val")   # any model + its eval transform, no store
+results.summary["top1"], results.predictions                          # per image
 ```
 
-### You can also run a linear probe or knn evaluation on the outputs of any named module
+## Datasets
 
-If you are training linear probes, it's recommended that you run this on the cluster, rather than your local workstation.
+| name | visionlab.datasets cache | label space |
+|---|---|---|
+| `in1k-val` | imagenet1k / val / jpeg (s256_l512_q100) | in1k (1000) |
+| `in100-val` | imagenet100 / val / jpeg (s256_l512_q100) | in100 (100) |
 
+Original (unresized) val images are planned in visionlab.datasets. They'll be added as new dataset names; until
+then the caches are pre-resized (shortest edge 256), so top-1 can differ slightly from numbers published on originals.
+A cache's content revision (from its manifest's per-file sha256s) is part of the eval spec. A cache downloaded
+before those hashes existed gives non-reusable runs. Refresh it with
+`visionlab-datasets sync <name> val jpeg --deep`.
+
+## Label spaces
+
+A readout scores classes in its own label space: config `label_space`, else its readout metadata, else the source's
+`provenance.train_data`, else in1k. The map to the dataset's labels is named and hashed into the spec:
+in1k on in100-val keeps the 100 in1k columns of the in100 classes (`in1k->in100:restrict@1`). An in100 readout is
+evaluated on in100-val. Override: `model eval classification <spec> --set label_space=in100`.
+
+Preprocessing: the model's `val` transform by default (its standard ImageNet eval pipeline, e.g. Resize 256 +
+CenterCrop 224, as published top-1 uses); `--set transform=test` for shortest-edge-to-crop. Both are hashed.
+
+## Results
+
+`results.parquet` per run: index, path, target, pred, correct1, correct5, topk_labels, topk_scores, target_score,
+max_nontarget_score, decision_margin, loss (+ identity columns). Summary: top1, top5 (fractions), loss_mean,
+dm_mean/median/min/max/kurtosis, n_images. Store: `eval=classification/version=<v>/dataset=…` (model-evals Hive
+store).
+
+## Development
+
+```bash
+uv run pytest            # unit tests + a 64-image CPU end-to-end on in100-val (marker `data`)
+uv run ruff check classification tests
 ```
-from visionlab_datasets import load_dataset, load_dataloader
-from visionlab_models import load_model
-from eval_classification import Classifier, ResultsLogger
 
-# setup classifier with automatic remote data storage
-classifier = Classifier(bucket='visionlab-results/alvarez/Projects/dnn-evals/eval-classification', 
-                        notion_db='')
-
-model, transforms = load_model("torchvision/alexnet", weights="DEFAULT")
-train_loader, train_output_mapping = load_dataloader("in1k", split="train", transform=transforms['train'])
-val_loader, val_output_mapping = load_dataloader("in1k", split="val", transform=transforms['val'])
-
-layer_names = ['classifier.1', 'classifier.3', 'classifier.5']
-
-probe_results = classifier.linear_probe(model, train_loader, val_loader, layer_names, epochs=10,
-                                        train_output_mapping=train_output_mapping, val_output_mapping=val_output_mapping)
-
-knn_results = classifier.knn(model, train_loader, val_loader, layer_names, K=200,
-                             train_output_mapping=train_output_mapping, val_output_mapping=val_output_mapping)
-
-```
+History: v0.1 (2024) was a wasabi/notion-backed `ClassifierStore`. Its results were abandoned (George, 2026-10-25).
+See PLAN.md.
