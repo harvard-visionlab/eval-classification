@@ -4546,7 +4546,7 @@ dev = [
 [[package]]
 name = "visionlab-model-evals"
 version = "0.1.0"
-source = { git = "https://github.com/harvard-visionlab/model-evals.git#90f2c0700d8209fc5069b927f915a56ffbab9391" }
+source = { git = "https://github.com/harvard-visionlab/model-evals.git#63e7a07c5fcde649357e4a87f69e4a4697b50f93" }
 dependencies = [
     { name = "boto3" },
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
