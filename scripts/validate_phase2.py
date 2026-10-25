@@ -32,7 +32,7 @@ REARING = [  # spec, dataset space, recorded probe-phase top-1
     (f"2ad57e0f@probe:{P}.fc_block_7", "in1k", 0.56862),
     ("2ad57e0f@probe:core.backbone.avgpool", "in1k", 0.41842),
     ("80a62e22", "in100", 0.7640),
-    ("a1a37c03", "in100", 0.6992),
+    # a1a37c03 (alexnet2012_out100, 0.6992): pre-v0.5.0 record from another repo, not served by the rearing source
 ]
 
 
