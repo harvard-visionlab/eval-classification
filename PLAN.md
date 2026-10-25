@@ -66,3 +66,27 @@ Smoke runs (s256 caches; laptop CPU, which was a mistake: full sets go to vesper
 - rearing/alexnet2023_w1:2ad57e0f head, in1k-val: 0.57822 vs its probe-phase clean top-1 0.57778
 - same model `@probe:core.projector.layers.fc_block_7` on in100-val (in1k->in100 restrict): 0.7882
 Waiting on: visionlab.datasets originals (plan with George). Then phase 2 validation on vesper.
+
+## Phase 2 validation (vesper RTX 4090, 2026-10-25; `scripts/validate_phase2.py`, runs stored in s3://visionlab-evals)
+
+| spec | dataset | top1 | reference | Δ pt |
+|---|---|---|---|---|
+| pytorch/alexnet:IMAGENET1K_V1 | in1k-val | 0.56556 | 0.56522 published | +0.034 |
+| pytorch/resnet50:IMAGENET1K_V1 | in1k-val | 0.76146 | 0.76130 published | +0.016 |
+| pytorch/resnet50:IMAGENET1K_V2 | in1k-val | 0.80842 | 0.80858 published | −0.016 |
+| pytorch/vit_b_16:IMAGENET1K_V1 | in1k-val | 0.81066 | 0.81072 published | −0.006 |
+| rearing 2ad57e0f (head) | in1k-val-s256 | 0.57820 | 0.57778 probe phase | +0.042 |
+| rearing 2ad57e0f (head) | in1k-val | 0.57562 | | −0.216 |
+| 2ad57e0f@probe:…fc_block_7 | in1k-val-s256 | 0.56910 | 0.56862 | +0.048 |
+| 2ad57e0f@probe:…fc_block_7 | in1k-val | 0.56760 | | −0.102 |
+| 2ad57e0f@probe:core.backbone.avgpool | in1k-val-s256 | 0.41744 | 0.41842 | −0.098 |
+| 2ad57e0f@probe:core.backbone.avgpool | in1k-val | 0.41582 | | −0.260 |
+| rearing 80a62e22 (in100 head) | in100-val-s256 | 0.76380 | 0.76400 | −0.020 |
+| rearing 80a62e22 (in100 head) | in100-val | 0.76240 | | −0.160 |
+
+- Published torchvision numbers are reproduced on originals within ±0.035 pt (datasets' suggested tolerance: ±0.05).
+- Rearing models match their probe-phase numbers on the cache they were evaluated on (s256) within ±0.1 pt. That
+  probe phase used slipstream's resize, so it isn't the identical pipeline. On originals they score 0.1–0.26 pt
+  lower, consistently: these models were trained and probed on s256 images.
+- Fixes this found: DataLoader workers on slipstream stores (slipstream fixed it in 0.11.3; we use a thread pool
+  anyway), CPU-by-default device (eval and model-evals run_eval now default to CUDA, so probes move with the model).
