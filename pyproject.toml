@@ -36,9 +36,9 @@ dev = ["pytest", "ruff", "ipykernel", "jupyterlab", "duckdb"]
 
 [tool.uv.sources]
 visionlab-model-evals = { git = "https://github.com/harvard-visionlab/model-evals.git" }
-visionlab-datasets = { git = "https://github.com/harvard-visionlab/datasets.git", tag = "v0.19.0" }
+visionlab-datasets = { git = "https://github.com/harvard-visionlab/datasets.git", tag = "v0.19.1" }
 # consumers pin slipstream themselves (not on PyPI); same tag as visionlab.datasets' own env
-visionlab-slipstream = { git = "https://github.com/harvard-visionlab/slipstream.git", tag = "v0.11.2" }
+visionlab-slipstream = { git = "https://github.com/harvard-visionlab/slipstream.git", tag = "v0.11.3" }
 torch = [
     { index = "pytorch-cu126", marker = "sys_platform == 'linux' and platform_machine == 'x86_64'" },
     { index = "pytorch-cpu", marker = "sys_platform != 'linux' or platform_machine != 'x86_64'" },

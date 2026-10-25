@@ -25,11 +25,9 @@ from .version import __version__
 
 
 def _resolve_device(model, device) -> torch.device:
+    """Explicit device, else CUDA when available (model sources load on CPU), else CPU."""
     if device is not None:
         return torch.device(device)
-    params = list(model.parameters()) if isinstance(model, torch.nn.Module) else []
-    if params:
-        return params[0].device
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 

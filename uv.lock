@@ -4458,8 +4458,8 @@ wheels = [
 
 [[package]]
 name = "visionlab-datasets"
-version = "0.19.0"
-source = { git = "https://github.com/harvard-visionlab/datasets.git?tag=v0.19.0#b8d3f917a23bf8ccd6d4282b7e778ad5a245d109" }
+version = "0.19.1"
+source = { git = "https://github.com/harvard-visionlab/datasets.git?tag=v0.19.1#78d3561afb28083b0be5c0c5292fc517278593a2" }
 dependencies = [
     { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version == '3.11.*'" },
@@ -4527,10 +4527,10 @@ requires-dist = [
     { name = "torchvision", marker = "platform_machine != 'x86_64' or sys_platform != 'linux'", specifier = ">=0.28.0,<0.29", index = "https://download.pytorch.org/whl/cpu" },
     { name = "torchvision", marker = "platform_machine == 'x86_64' and sys_platform == 'linux'", specifier = ">=0.28.0,<0.29", index = "https://download.pytorch.org/whl/cu126" },
     { name = "tqdm" },
-    { name = "visionlab-datasets", git = "https://github.com/harvard-visionlab/datasets.git?tag=v0.19.0" },
+    { name = "visionlab-datasets", git = "https://github.com/harvard-visionlab/datasets.git?tag=v0.19.1" },
     { name = "visionlab-model-evals", git = "https://github.com/harvard-visionlab/model-evals.git" },
     { name = "visionlab-models", marker = "extra == 'models'", git = "https://github.com/harvard-visionlab/models.git" },
-    { name = "visionlab-slipstream", git = "https://github.com/harvard-visionlab/slipstream.git?tag=v0.11.2" },
+    { name = "visionlab-slipstream", git = "https://github.com/harvard-visionlab/slipstream.git?tag=v0.11.3" },
 ]
 provides-extras = ["models"]
 
@@ -4597,8 +4597,8 @@ dependencies = [
 
 [[package]]
 name = "visionlab-slipstream"
-version = "0.11.2"
-source = { git = "https://github.com/harvard-visionlab/slipstream.git?tag=v0.11.2#d51fd3384b6fd600ecf483f918b54f3c2a3b1a3f" }
+version = "0.11.3"
+source = { git = "https://github.com/harvard-visionlab/slipstream.git?tag=v0.11.3#d131ab417b839585804e1712e1da288fc06d03aa" }
 dependencies = [
     { name = "boto3" },
     { name = "datasets" },
