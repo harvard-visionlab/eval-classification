@@ -20,16 +20,16 @@ results.summary["top1"], results.predictions                          # per imag
 
 ## Datasets
 
-| name | visionlab.datasets cache | label space |
+| name | visionlab.datasets (>= 0.19) | label space |
 |---|---|---|
-| `in1k-val` | imagenet1k / val / jpeg (s256_l512_q100) | in1k (1000) |
-| `in100-val` | imagenet100 / val / jpeg (s256_l512_q100) | in100 (100) |
+| `in1k-val` (default) | imagenet1k / val / original: the ILSVRC2012 val JPEGs as distributed | in1k (1000) |
+| `in100-val` | imagenet100 / val / original | in100 (100) |
+| `in1k-val-s256` | imagenet1k / val / jpeg (pre-resized, shortest edge 256, q100) | in1k |
+| `in100-val-s256` | imagenet100 / val / jpeg (pre-resized) | in100 |
 
-Original (unresized) val images are planned in visionlab.datasets. They'll be added as new dataset names; until
-then the caches are pre-resized (shortest edge 256), so top-1 can differ slightly from numbers published on originals.
-A cache's content revision (from its manifest's per-file sha256s) is part of the eval spec. A cache downloaded
-before those hashes existed gives non-reusable runs. Refresh it with
-`visionlab-datasets sync <name> val jpeg --deep`.
+Originals are what published top-1 numbers use. The s256 caches are faster but differ slightly (alexnet: 0.5638
+vs 0.5652 published). Images are decoded with PIL and converted to RGB. The store's content identity
+(`ds.identity`, "sha256:…") is hashed into the eval spec.
 
 ## Label spaces
 
