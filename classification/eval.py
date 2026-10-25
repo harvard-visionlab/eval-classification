@@ -10,15 +10,15 @@ from __future__ import annotations
 import getpass
 import platform
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 
 import numpy as np
 import torch
-from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
 from visionlab.evals.core.spec import transform_signature
 
-from .data import DEFAULT_DATASET, EvalDataset, load_eval_dataset
+from .data import DEFAULT_DATASET, EvalDataset, decode, load_eval_dataset
 from .labels import label_map as make_label_map
 from .scoring import TOPK, ClassificationResults, build_predictions, summarize
 from .version import __version__
@@ -33,6 +33,33 @@ def _resolve_device(model, device) -> torch.device:
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
+def iter_batches(ds: EvalDataset, batch_size: int, num_workers: int):
+    """(images, labels, index, paths) batches in dataset order. Raw samples are read in this process and decoded +
+    transformed by a thread pool (PIL releases the GIL), one batch ahead. Not a DataLoader: reading a slipstream
+    store from forked worker processes is pathologically slow (vesper 2026-10-25: < 1 img/s per worker)."""
+    transform = ds.transform
+
+    def prepare(raw):
+        image = decode(raw)
+        return transform(image) if transform is not None else image
+
+    def read(start):
+        idx = list(range(start, min(start + batch_size, len(ds))))
+        samples = [ds.base[i] for i in idx]
+        images = list(pool.map(prepare, [s["image"] for s in samples]))
+        labels = [int(s[ds.spec.label_field]) for s in samples]
+        return torch.stack(images), torch.tensor(labels), np.asarray(idx), [s["path"] for s in samples]
+
+    with ThreadPoolExecutor(max(1, num_workers)) as pool, ThreadPoolExecutor(1) as ahead:
+        starts = list(range(0, len(ds), batch_size))
+        future = ahead.submit(read, starts[0]) if starts else None
+        for k in range(len(starts)):
+            batch = future.result()
+            if k + 1 < len(starts):
+                future = ahead.submit(read, starts[k + 1])
+            yield batch
+
+
 @torch.inference_mode()
 def predict_scores(
     model,
@@ -40,20 +67,21 @@ def predict_scores(
     map_scores: Callable,
     batch_size: int = 128,
     device=None,
-    num_workers: int = 4,
+    num_workers: int = 16,
     progress: bool = True,
 ) -> tuple[np.ndarray, np.ndarray, list]:
-    """(scores (N, C) in the dataset's label space, targets (N,), paths) in dataset order."""
+    """(scores (N, C) in the dataset's label space, targets (N,), paths) in dataset order. `num_workers` = decode
+    threads."""
     device = _resolve_device(model, device)
     if isinstance(model, torch.nn.Module):
         model = model.to(device).eval()
-    loader = DataLoader(ds, batch_size=batch_size, shuffle=False, num_workers=num_workers)
     scores, targets, paths = None, np.full(len(ds), -1, dtype=np.int64), [None] * len(ds)
-    for images, labels, index, path in tqdm(loader, disable=not progress, desc=f"classification {ds.spec.name}"):
+    n_batches = -(-len(ds) // batch_size)
+    batches = iter_batches(ds, batch_size, num_workers)
+    for images, labels, idx, path in tqdm(batches, total=n_batches, disable=not progress, desc=ds.spec.name):
         out = map_scores(model(images.to(device, non_blocking=True))).detach().float().cpu().numpy()
         if scores is None:
             scores = np.full((len(ds), out.shape[1]), np.nan, dtype=np.float32)
-        idx = index.numpy()
         scores[idx], targets[idx] = out, labels.numpy()
         for i, p in zip(idx, path):
             paths[i] = p
@@ -68,7 +96,7 @@ def classification_eval(
     label_space: str | None = None,
     batch_size: int = 128,
     device=None,
-    num_workers: int = 4,
+    num_workers: int = 16,
     progress: bool = True,
     **meta,
 ) -> ClassificationResults:
