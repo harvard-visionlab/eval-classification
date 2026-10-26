@@ -88,5 +88,9 @@ Waiting on: visionlab.datasets originals (plan with George). Then phase 2 valida
 - Rearing models match their probe-phase numbers on the cache they were evaluated on (s256) within ±0.1 pt. That
   probe phase used slipstream's resize, so it isn't the identical pipeline. On originals they score 0.1–0.26 pt
   lower, consistently: these models were trained and probed on s256 images.
-- Fixes this found: DataLoader workers on slipstream stores (slipstream fixed it in 0.11.3; we use a thread pool
-  anyway), CPU-by-default device (eval and model-evals run_eval now default to CUDA, so probes move with the model).
+- Fixes this found: DataLoader workers on slipstream stores (slipstream fixed it in 0.11.3), CPU-by-default device
+  (eval and model-evals run_eval now default to CUDA, so probes move with the model). The alexnet and resnet50 V1 rows
+  above ran on CPU (fp32-strict); every other row ran on GPU (tf32). alexnet on GPU: 0.56552.
+- Loader (fee761a): the thread pool was replaced by a torch DataLoader (PIL decode in 16 worker processes, batch 256).
+  Same pixels: resnet50 V2 reproduces 0.80842 exactly, with the same eval_spec_id. On vesper, a full in1k-val run takes
+  48 s (alexnet) to 84 s (resnet50), including startup.
